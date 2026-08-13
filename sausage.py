@@ -17,30 +17,35 @@ rotclockwise90 = torch.tensor([
     [cos(-pi/2), -sin(-pi/2)], [sin(-pi/2), cos(-pi/2)]
 ], dtype=torch.float32).to(device)
 
-def quadratic_type_1(coords: torch.Tensor):
-    start = coords[0]
-    end = coords[1]
+def quadratic_type_1(coord_list: torch.Tensor):
+    start = coord_list[:, 0]
+    end = coord_list[:, 1]
     dist_vec = end-start
     onethird = start + (dist_vec * 1/3)
     twothird = start + (dist_vec * 2/3)
-    corner1 = rotcounter90 @ (twothird - onethird) + onethird
-    corner2 = rotclockwise90 @ (onethird - twothird) + twothird
-    out = (torch.stack((start, onethird)), torch.stack((onethird, corner1)), torch.stack((corner1, corner2)), torch.stack((corner2, twothird)), torch.stack((twothird, end)))
-    out = torch.stack(out)
+    corner1 = rotcounter90 @ (twothird - onethird).T + onethird.T
+    corner1 = corner1.T
+    corner2 = rotclockwise90 @ (onethird - twothird).T + twothird.T
+    corner2 = corner2.T
+
+    out = (
+            torch.stack((start, onethird), dim=1), 
+            torch.stack((onethird, corner1), dim=1), 
+            torch.stack((corner1, corner2), dim=1), 
+            torch.stack((corner2, twothird), dim=1), 
+            torch.stack((twothird, end), dim=1)
+        )
+    out = torch.cat(out)
     return out
 
 if __name__ == "__main__":
     start = torch.tensor([
-        [[0, 0], [1, 0]]
+        [[0, 0], [1, 0]],
         ], dtype=torch.float32).to(device)
-    out = start
     begin = time.time()
-    for j in tqdm(range(4)):
-        result = []
-        # TODO: PARALLELISE
-        for i in out:
-            result.append(quadratic_type_1(i))
-        out = torch.cat(result)
+    out = start
+    for i in range(5):
+        out = quadratic_type_1(out)
     end = time.time()
     print(f"{1000*(end-begin):.3f}ms")
     for p in out:
