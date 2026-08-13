@@ -1,15 +1,11 @@
+from typing import Callable
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from math import cos, sin, pi
-from tqdm import tqdm
 import time
-# TODO: add zooming in
-# TODO: add type 2 quadratic
+
 device = torch.get_default_device()
-
-absdist = torch.nn.PairwiseDistance(p=1)
-
 rotcounter90 = torch.tensor([
     [cos(pi/2), -sin(pi/2)], [sin(pi/2), cos(pi/2)]
 ], dtype=torch.float32).to(device)
@@ -83,11 +79,11 @@ def snowflake_curve(coord_list: torch.Tensor) -> torch.Tensor:
         )).to(device)
     return out
 
-def generate(start: torch.Tensor, num_iters: int = 1) -> torch.Tensor:
+def generate(start: torch.Tensor, num_iters: int = 1, curve: Callable[[torch.Tensor], torch.Tensor] = sausage_curve) -> torch.Tensor:
     assert num_iters >= 1, "Number of iterations should be strictly positive"
     out = start
     for _ in range(num_iters):
-        out = sausage_curve(out)
+        out = curve(out)
     return out
 
 if __name__ == "__main__":
@@ -95,10 +91,10 @@ if __name__ == "__main__":
         [[0, 0], [1, 0]],
         ], dtype=torch.float32).to(device)
     begin = time.time()
-    out = generate(start, 3)
+    out = generate(start, 5, curve=snowflake_curve)
     end = time.time()
     print(f"{1000*(end-begin):.3f}ms")
-    for p in out:
-        plt.plot(p[:, 0], p[:, 1])
+    for i in out:
+        plt.plot(i[:, 0], i[:, 1])
     plt.gca().set_aspect('equal')
     plt.show()
